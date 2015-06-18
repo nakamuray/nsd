@@ -3,15 +3,19 @@ require "gtk3"
 class NSD
     def main
         @io = GLib::IOChannel.new($stdin)
-        watch1 = @io.add_watch(GLib::IOChannel::IN) do |io, cond|
-            line = io.readline().strip()
+        watch_id = @io.add_watch(GLib::IOChannel::IN) do |io, cond|
+            begin
+                line = io.readline().strip()
+            rescue EOFError
+                io.close()
+                GLib::Source.remove(watch_id)
+                return
+            end
+            if not line
+                return
+            end
             y = 50 + rand * (Gdk::default_root_window.screen.height - 100)
             Comment.new(line).start(y)
-        end
-        watch2 = @io.add_watch(GLib::IOChannel::HUP) do |io, cond|
-            io.close()
-            GLib::Source.remove(watch1)
-            GLib::Source.remove(watch2)
         end
 
         Gtk::main()
