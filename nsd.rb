@@ -139,7 +139,7 @@ class Comment < TransparentWindow
         @x = screen.width
         move(@x, @y)
         show_all()
-        step = (@x + size[0]) / (@duration * FPS)
+        step = Float(@x + size[0]) / (@duration * FPS)
         @timeout_id = GLib::Timeout.add(1000.0/FPS) do
             move_next(step)
         end
