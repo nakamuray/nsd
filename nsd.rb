@@ -117,26 +117,18 @@ class Comment < TransparentWindow
         @label.attributes = attrs
         @label.override_font(Pango::FontDescription.new(@font))
         @label.override_color(0, Gdk::RGBA.new(1.0, 1.0, 1.0, 1.0))
-        @label.signal_connect("draw") do |label, cr|
+        @label.signal_connect_after("draw") do |label, cr|
             on_draw_outline_text(cr)
         end
 
         add(@label)
     end
     def on_draw_outline_text(cr)
-        # clean
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.0)
-        cr.set_operator(Cairo::OPERATOR_SOURCE)
-        cr.paint()
-
         layout = cr.create_pango_layout()
         layout.set_font_description(Pango::FontDescription.new(@font))
         layout.text = @msg
         layout.attributes = @label.attributes
         cr.pango_layout_path(layout)
-
-        cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-        cr.fill_preserve()
 
         cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
         cr.set_line_width(1.0)
