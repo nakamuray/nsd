@@ -3,10 +3,13 @@ require "json"
 require "optparse"
 
 class NSD
+    # maximum number of comments displayed at once
+    MAX_COMMENT_COUNT = 100
+
     def main
         options = parse_options(ARGV)
 
-        comment_count = 0
+        comments = []
         io_closed = false
 
         io = GLib::IOChannel.new($stdin)
@@ -43,12 +46,16 @@ class NSD
             comment = Comment.new(
                 line, attrs=attrs, font=options.font, duration=options.duration
             )
-            comment_count += 1
+            comments << comment
+            if comments.count > MAX_COMMENT_COUNT
+                last_comment = comments.shift()
+                last_comment.destroy()
+            end
 
             comment.signal_connect('destroy') do |comment, event|
-                comment_count -= 1
+                comments.delete(comment)
 
-                if comment_count == 0 and io_closed
+                if comments.count == 0 and io_closed
                     Gtk::main_quit()
                 end
             end
@@ -136,6 +143,14 @@ class Comment < TransparentWindow
         end
 
         add(@label)
+
+        @timeout_id = nil
+        signal_connect("destroy") do |obj, event|
+            if @timeout_id
+                GLib::Source.remove(@timeout_id)
+                @timeout_id = nil
+            end
+        end
     end
     def on_draw_outline_text(cr)
         layout = cr.create_pango_layout()
@@ -173,8 +188,6 @@ class Comment < TransparentWindow
         @x -= step
 
         if @x <= -size[0]
-            GLib::Source.remove(@timeout_id)
-            @timeout_id = nil
             destroy()
         else
             true
