@@ -149,6 +149,16 @@ class Comment < TransparentWindow
         cr.stroke()
     end
     def start(y)
+        # to calculate window size, show label
+        # (but don't show window)
+        @label.show()
+
+        if size[1] > screen.height
+            y = 0
+        elsif y + size[1] > screen.height
+            y = screen.height - size[1]
+        end
+
         @y = y
         @x = screen.width
         move(@x, @y)
