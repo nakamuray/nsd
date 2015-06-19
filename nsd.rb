@@ -26,9 +26,18 @@ class NSD
                     next true
                 end
             end
+            attrs = nil
+            if options.markup
+                begin
+                    attrs, line = Pango::parse_markup(line)
+                rescue GLib::Error => e
+                    warn e
+                    next true
+                end
+            end
             y = 50 + rand * (Gdk::default_root_window.screen.height - 100)
             Comment.new(
-                line, font=options.font, duration=options.duration
+                line, attrs=attrs, font=options.font, duration=options.duration
             ).start(y)
         end
 
@@ -40,6 +49,7 @@ class NSD
         options.duration = Comment::DURATION
         options.font = Comment::FONT
         options.json = false
+        options.markup = false
 
         OptionParser.new do |opts|
             opts.banner = "Usage: #{$0} [options]"
@@ -58,6 +68,11 @@ class NSD
             opts.on("-j", "--json",
                     "parse line as JSON", "(default: #{options.json})") do |j|
                 options.json = j
+            end
+
+            opts.on("-m", "--markup",
+                    "parse line pango markup", "(default: #{options.markup})") do |m|
+                options.markup = m
             end
         end.parse!(argv)
 
@@ -91,7 +106,7 @@ class Comment < TransparentWindow
     FPS = 60
     DURATION = 10
 
-    def initialize(msg, font=nil, duration=nil)
+    def initialize(msg, attrs=nil, font=nil, duration=nil)
         super()
 
         @msg = msg
@@ -99,6 +114,7 @@ class Comment < TransparentWindow
         @duration = duration || DURATION
 
         @label = Gtk::Label.new(msg)
+        @label.attributes = attrs
         @label.override_font(Pango::FontDescription.new(@font))
         @label.override_color(0, Gdk::RGBA.new(1.0, 1.0, 1.0, 1.0))
         @label.signal_connect("draw") do |label, cr|
@@ -116,6 +132,7 @@ class Comment < TransparentWindow
         layout = cr.create_pango_layout()
         layout.set_font_description(Pango::FontDescription.new(@font))
         layout.text = @msg
+        layout.attributes = @label.attributes
         cr.pango_layout_path(layout)
 
         cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
