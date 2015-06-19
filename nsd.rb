@@ -6,14 +6,18 @@ class NSD
     def main
         options = parse_options(ARGV)
 
+        comment_count = 0
+        io_closed = false
+
         io = GLib::IOChannel.new($stdin)
-        watch_id = io.add_watch(GLib::IOChannel::IN) do |io, cond|
+        watch_id = io.add_watch(GLib::IOChannel::IN|GLib::IOChannel::HUP) do |io, cond|
             begin
                 line = io.readline().strip()
             rescue EOFError
                 io.close()
                 GLib::Source.remove(watch_id)
-                return
+                io_closed = true
+                next true
             end
             if line == ""
                 next true
@@ -36,9 +40,19 @@ class NSD
                 end
             end
             y = 50 + rand * (Gdk::default_root_window.screen.height - 100)
-            Comment.new(
+            comment = Comment.new(
                 line, attrs=attrs, font=options.font, duration=options.duration
-            ).start(y)
+            )
+            comment_count += 1
+
+            comment.signal_connect('destroy') do |comment, event|
+                comment_count -= 1
+
+                if comment_count == 0 and io_closed
+                    Gtk::main_quit()
+                end
+            end
+            comment.start(y)
         end
 
         Gtk::main()
