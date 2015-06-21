@@ -122,6 +122,28 @@ class TransparentWindow < Gtk::Window
     end
 end
 
+class OutlinedLabel < Gtk::Label
+    def initialize(*args)
+        super(*args)
+
+        signal_connect_after("draw") do |label, cr|
+            draw_outline(cr)
+        end
+    end
+    def draw_outline(cr)
+        layout = cr.create_pango_layout()
+        layout.set_font_description(self.layout.context.font_description)
+        layout.text = self.layout.text
+        layout.attributes = self.layout.attributes
+
+        cr.pango_layout_path(layout)
+
+        cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+        cr.set_line_width(1.0)
+        cr.stroke()
+    end
+end
+
 class Comment < TransparentWindow
     FONT = "Migu 1P bold 24"
     FPS = 60
@@ -134,13 +156,10 @@ class Comment < TransparentWindow
         @font = font || FONT
         @duration = duration || DURATION
 
-        @label = Gtk::Label.new(msg)
+        @label = OutlinedLabel.new(msg)
         @label.attributes = attrs
         @label.override_font(Pango::FontDescription.new(@font))
         @label.override_color(0, Gdk::RGBA.new(1.0, 1.0, 1.0, 1.0))
-        @label.signal_connect_after("draw") do |label, cr|
-            on_draw_outline_text(cr)
-        end
 
         add(@label)
 
@@ -151,17 +170,6 @@ class Comment < TransparentWindow
                 @timeout_id = nil
             end
         end
-    end
-    def on_draw_outline_text(cr)
-        layout = cr.create_pango_layout()
-        layout.set_font_description(Pango::FontDescription.new(@font))
-        layout.text = @msg
-        layout.attributes = @label.attributes
-        cr.pango_layout_path(layout)
-
-        cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-        cr.set_line_width(1.0)
-        cr.stroke()
     end
     def start(y)
         # to calculate window size, show label
