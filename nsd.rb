@@ -19,6 +19,9 @@ class NSD
             rescue EOFError
                 io.close()
                 GLib::Source.remove(watch_id)
+                if comments.count == 0
+                    Gtk::main_quit()
+                end
                 io_closed = true
                 next true
             end
